@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Happy Birthday & Wishes</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #050508;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      color: #fff;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Card Ucapan & Doa */
+    .wish-container {
+      position: absolute;
+      bottom: 8%;
+      z-index: 10;
+      width: 90%;
+      max-width: 650px;
+      padding: 20px 25px;
+      background: rgba(15, 15, 25, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      text-align: center;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .wish-container.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .wish-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #ffd700;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    .wish-text {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #e0e0e0;
+      min-height: 50px;
+    }
+
+    /* Tombol Replay */
+    .btn-replay {
+      margin-top: 15px;
+      padding: 8px 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, #ff007f, #7928ca);
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255, 0, 127, 0.4);
+      transition: all 0.3s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .btn-replay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .btn-replay:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(255, 0, 127, 0.6);
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="canvas"></canvas>
+
+  <!-- Box Ucapan & Doa -->
+  <div class="wish-container" id="wishContainer">
+    <div class="wish-title"> DOA & HARAPAN </div>
+    <div class="wish-text" id="wishText"></div>
+    <button class="btn-replay" id="btnReplay" onclick="restartAnimation()">Ulangi Animasi </button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      calculatePositions();
+    });
+
+    const lines = ["HAPPY", "BIRTHDAY", "TAUFIK"];
+    let fontSize = Math.min(width / 8, 65);
+    let lineSpacing = fontSize * 1.35;
+
+    let letters = [];
+    let backgroundParticles = [];
+    let allPlaced = false;
+
+    // Inisialisasi Partikel Latar Belakang (Bintang bercahaya)
+    for (let i = 0; i < 60; i++) {
+      backgroundParticles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        size: Math.random() * 2 + 0.5,
+        alpha: Math.random(),
+        speed: Math.random() * 0.02 + 0.005
+      });
+    }
+
+    function calculatePositions() {
+      letters = [];
+      fontSize = Math.min(width / 8, 65);
+      lineSpacing = fontSize * 1.35;
+
+      const totalHeight = lines.length * lineSpacing;
+      const startY = (height - totalHeight) / 2.3 + fontSize;
+
+      lines.forEach((line, lineIndex) => {
+        ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+        const lineWidth = ctx.measureText(line).width;
+        let startX = (width - lineWidth) / 2;
+
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          const charWidth = ctx.measureText(char).width;
+
+          if (char !== " ") {
+            const hue = (startX / width) * 360;
+
+            letters.push({
+              char: char,
+              targetX: startX + charWidth / 2,
+              targetY: startY + lineIndex * lineSpacing,
+              currentX: startX + charWidth / 2,
+              currentY: height + 100 + Math.random() * 300,
+              speedY: 5 + Math.random() * 3.5,
+              hue: hue,
+              state: 'rising',
+              particles: []
+            });
+          }
+          startX += charWidth;
+        }
+      });
+    }
+
+    // Kelas Partikel Kembang Api
+    class Particle {
+      constructor(x, y, hue, isExplosion = false) {
+        this.x = x;
+        this.y = y;
+        this.hue = hue;
+        this.angle = Math.random() * Math.PI * 2;
+        this.speed = isExplosion ? (Math.random() * 5 + 1) : (Math.random() * 2 + 0.5);
+        this.friction = 0.95;
+        this.gravity = 0.08;
+        this.alpha = 1;
+        this.decay = Math.random() * 0.02 + 0.012;
+        this.size = Math.random() * 2.5 + 1;
+      }
+
+      update() {
+        this.speed *= this.friction;
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed + this.gravity;
+        this.alpha -= this.decay;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = Math.max(this.alpha, 0);
+        ctx.fillStyle = `hsl(${this.hue}, 100%, 65%)`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    calculatePositions();
+
+    // Teks Doa
+    const doaMessage = "Selamat ulang tahun! Semoga panjang umur, selalu diberikan kesehatan, kelancaran rezeki, serta kebahagiaan yang berlimpah. Semoga setiap impian dan cita-citamu dipermudah serta dicapai di usia yang baru ini. Tetaplah menjadi pribadi yang baik dan menginspirasi!";
+    
+    let doaIndex = 0;
+    let typingStarted = false;
+
+    function typeWriter() {
+      if (doaIndex < doaMessage.length) {
+        document.getElementById("wishText").innerHTML += doaMessage.charAt(doaIndex);
+        doaIndex++;
+        setTimeout(typeWriter, 35);
+      } else {
+        document.getElementById("btnReplay").classList.add("show");
+      }
+    }
+
+    function showDoa() {
+      const container = document.getElementById("wishContainer");
+      container.classList.add("show");
+      if (!typingStarted) {
+        typingStarted = true;
+        setTimeout(typeWriter, 500);
+      }
+    }
+
+    function animate() {
+      // Efek jejak warna hitam transparan
+      ctx.fillStyle = 'rgba(5, 5, 8, 0.25)';
+      ctx.fillRect(0, 0, width, height);
+
+      // Gambar Bintang Latar Belakang
+      backgroundParticles.forEach(p => {
+        p.alpha += p.speed;
+        if (p.alpha > 1 || p.alpha < 0) p.speed = -p.speed;
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(p.alpha)})`;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+      });
+
+      let placedCount = 0;
+
+      letters.forEach((letter) => {
+        if (letter.state === 'rising') {
+          letter.currentY -= letter.speedY;
+
+          if (Math.random() < 0.5) {
+            letter.particles.push(new Particle(letter.currentX, letter.currentY, letter.hue, false));
+          }
+
+          // Kepala Kembang Api
+          ctx.beginPath();
+          ctx.arc(letter.currentX, letter.currentY, 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = `hsl(${letter.hue}, 100%, 75%)`;
+          ctx.fill();
+
+          if (letter.currentY <= letter.targetY) {
+            letter.currentY = letter.targetY;
+            letter.state = 'placed';
+
+            // Ledakan saat sampai di tujuan
+            for (let i = 0; i < 25; i++) {
+              letter.particles.push(new Particle(letter.currentX, letter.currentY, letter.hue, true));
+            }
+          }
+        } else if (letter.state === 'placed') {
+          placedCount++;
+
+          ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+
+          // Glowing text effect
+          ctx.shadowColor = `hsl(${letter.hue}, 100%, 50%)`;
+          ctx.shadowBlur = 20;
+          ctx.fillStyle = `hsl(${letter.hue}, 100%, 70%)`;
+          ctx.fillText(letter.char, letter.currentX, letter.currentY);
+          ctx.shadowBlur = 0;
+        }
+
+        // Render Partikel
+        for (let i = letter.particles.length - 1; i >= 0; i--) {
+          const p = letter.particles[i];
+          p.update();
+          p.draw();
+          if (p.alpha <= 0) {
+            letter.particles.splice(i, 1);
+          }
+        }
+      });
+
+      // Tampilkan ucapan doa jika semua huruf sudah terpasang
+      if (placedCount === letters.length && !allPlaced) {
+        allPlaced = true;
+        showDoa();
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    // Fungsi reset untuk tombol mengulang
+    function restartAnimation() {
+      document.getElementById("wishContainer").classList.remove("show");
+      document.getElementById("btnReplay").classList.remove("show");
+      document.getElementById("wishText").innerHTML = "";
+      doaIndex = 0;
+      typingStarted = false;
+      allPlaced = false;
+      calculatePositions();
+    }
+  </script>
+</body>
+</html>
